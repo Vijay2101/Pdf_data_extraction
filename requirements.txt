@@ -1,0 +1,4 @@
+flask
+pdfplumber
+tabula-py
+pandas
