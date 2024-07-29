@@ -166,48 +166,50 @@ def cleaning_preprocessing(df):
     return structured_df
 
 
-def format1(pdf_path):
+def format1(file_stream):
     all_data = []
     institution_pages = []
-    with pdfplumber.open(pdf_path) as pdf:
+
+    # Use BytesIO for in-memory file-like object
+    with pdfplumber.open(file_stream) as pdf:
         # Iterate through all pages
         for i, page in enumerate(pdf.pages):
             text = page.extract_text()
             # Extract data from the text of the current page
             extracted_data = extract_data(text)
 
-            print(i+1)
+            print(i + 1)
             # Check if Institution matches the required value
             if extracted_data.get('Institution') == 'BHAGWAN PARSHURAM INSTITUTE OF TECHNOLOGY':
                 institution_pages.append(i + 1)  # Store the page number (1-indexed)
                 all_data.append(extracted_data)
             else:
                 continue
-    
-    # 
+
     previous_metadata = None
     previous_df = None
     result_dfs = []
-    j=0
+    j = 0
+
     # Extract tables if Institution matches
     if institution_pages:
-        # Read PDF into a list of DataFrames
-        tables = tabula.read_pdf(pdf_path, pages=institution_pages)
+        # Use BytesIO for in-memory file-like object with tabula
+        file_stream.seek(0)  # Reset stream position to the beginning
+        tables = tabula.read_pdf(file_stream, pages=institution_pages, multiple_tables=True)
 
-        for  table in tables:
+        for table in tables:
             if 'Roll no./Name' in table.columns:
                 # Add metadata columns to the DataFrame
                 for key in ['Programme Name', 'Sem./Year', 'Batch', 'Examination', 'Institution']:
                     table[key] = all_data[j].get(key)
-
 
                 current_metadata = (
                     all_data[j].get('Programme Name'),
                     all_data[j].get('Sem./Year'),
                     all_data[j].get('Batch'),
                     all_data[j].get('Examination')
-                    )
-                j+=1
+                )
+                j += 1
                 if previous_metadata:
                     # Compare current metadata with previous metadata
                     if current_metadata == previous_metadata:
@@ -226,8 +228,9 @@ def format1(pdf_path):
 
             else:
                 continue
+
         if previous_df is not None and not previous_df.empty:
-                    result_dfs.append(previous_df)
+            result_dfs.append(previous_df)
     else:
         print("No pages with the specified Institution found.")
 
@@ -277,7 +280,9 @@ def format1(pdf_path):
                 }]
             })
 
+    # Save the result as a JSON file
     json_path = "result.json"
     with open(json_path, 'w') as json_file:
         json.dump(result, json_file, indent=4)
+
     return result

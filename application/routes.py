@@ -4,6 +4,7 @@ import os
 from application import result 
 from application import result2 
 import json
+from io import BytesIO
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -16,27 +17,28 @@ def index():
 def upload_file():
     if 'file' not in request.files:
         return redirect(request.url)
+    
     file = request.files['file']
     selected_format = request.form['format']
+    
     if file.filename == '':
         return redirect(request.url)
+    
     if file and allowed_file(file.filename):
-        filename = file.filename
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
-        # Open the PDF file
-        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
+        # Process the file in memory
+        file_stream = BytesIO(file.read())
+        
         try:
-            if selected_format =='format1':
-                res= result.format1(pdf_path)
+            # Assuming `result` and `result2` are functions that accept file-like objects
+            if selected_format == 'format1':
+                res = result.format1(file_stream)
             else:
-                res= result2.format2(pdf_path)
-
+                res = result2.format2(file_stream)
+            
             return render_template('result.html', json_data=json.dumps(res), result='result')
-        except:
-             return 'Invalid file format' 
-
+        except Exception as e:
+            return f'Error processing file: {str(e)}'
+    
     return 'Invalid file format'
 
 

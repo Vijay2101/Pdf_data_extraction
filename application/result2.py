@@ -186,11 +186,11 @@ def cleaning_preprocessing(df):
 
     return structured_df
 
-def format2(pdf_path):
+def format2(file_stream):
     all_data = []
     institution_pages = []
 
-    with pdfplumber.open(pdf_path) as pdf:
+    with pdfplumber.open(file_stream) as pdf:
         # Iterate through all pages
         for i, page in enumerate(pdf.pages):
             text = page.extract_text()
@@ -213,8 +213,9 @@ def format2(pdf_path):
     j=0
     # Extract tables if Institution matches
     if institution_pages:
+        file_stream.seek(0)
         # Read PDF into a list of DataFrames
-        tables = tabula.read_pdf(pdf_path, pages=institution_pages)
+        tables = tabula.read_pdf(file_stream, pages=institution_pages)
 
         for  table in tables:
             if 'Unnamed: 0' in table.columns:
